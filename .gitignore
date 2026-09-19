@@ -92,3 +92,4 @@ tmp/
 temp/
 
 *.md
+!dynamic-eta-sih/DEPLOY.md

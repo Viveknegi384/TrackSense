@@ -44,6 +44,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from typing import List
+from concurrent.futures import ThreadPoolExecutor
 
 from app.core.database import get_db
 from app.models.eta_engine import compute_baseline_eta, compute_dynamic_eta
@@ -134,10 +135,16 @@ def all_trains_eta(db: Session = Depends(get_db)):
         text("SELECT id FROM trains ORDER BY id")
     ).fetchall()
 
-    results: List[dict] = []
-    for row in train_rows:
-        eta = compute_dynamic_eta(db, row.id)
-        results.append(eta)
+    def calculate(row):
+        from app.core.database import SessionLocal
+
+        with SessionLocal() as session:
+            return compute_dynamic_eta(session, row.id)
+
+    # Each ETA calculation performs several DB queries. Limited parallelism
+    # keeps the free database responsive while avoiding a 25-request queue.
+    with ThreadPoolExecutor(max_workers=5) as executor:
+        results: List[dict] = list(executor.map(calculate, train_rows))
 
     return {"count": len(results), "trains": results}
 

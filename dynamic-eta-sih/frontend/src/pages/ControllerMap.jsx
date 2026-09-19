@@ -29,7 +29,26 @@ import {
 import { statusLabel, formatDelay, formatTime } from "../utils/statusHelpers";
 
 const NODE_URL  = import.meta.env.VITE_NODE_URL || "http://localhost:5000";
-const MAP_STYLE = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const MAP_STYLE = {
+  version: 8,
+  sources: {
+    openstreetmap: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+    },
+  },
+  layers: [
+    {
+      id: "openstreetmap-tiles",
+      type: "raster",
+      source: "openstreetmap",
+      minzoom: 0,
+      maxzoom: 19,
+    },
+  ],
+};
 
 const INIT_VIEW = {
   longitude: 79.5, latitude: 25.5,

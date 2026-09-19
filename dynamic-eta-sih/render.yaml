@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: tracksense-python
+    runtime: python
+    rootDir: dynamic-eta-sih/backend-python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: ENABLE_SIMULATOR
+        value: "true"
+      - key: SIMULATOR_TICK_INTERVAL
+        value: "10"
+      - key: SIMULATOR_TIME_ACCELERATION
+        value: "300"
+
+  - type: web
+    name: tracksense-node
+    runtime: node
+    rootDir: dynamic-eta-sih/backend-node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          name: tracksense-python
+          type: web
+          envVarKey: DATABASE_URL
+      - key: PYTHON_API_URL
+        value: https://tracksense-python.onrender.com
+      - key: CORS_ORIGIN
+        value: https://tracksense-frontend.onrender.com
+      - key: POLL_INTERVAL_MS
+        value: "5000"
+
+  - type: web
+    name: tracksense-frontend
+    runtime: static
+    rootDir: dynamic-eta-sih/frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_NODE_URL
+        value: https://tracksense-node.onrender.com
+      - key: VITE_PYTHON_URL
+        value: https://tracksense-python.onrender.com
